@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "owner": "alfaauliau-katarinaAI",
+  "max_parallel": 3,
+  "projects": [
+    {
+      "id": "ai",
+      "repository": "Katarina-AI",
+      "visibility": "public",
+      "branch": "main",
+      "workflow": "katarina-orchestrated-team.yml",
+      "purpose": "Katarina AI multi-specialist research and QA"
+    },
+    {
+      "id": "freelance",
+      "repository": "Katarina-Freelance",
+      "visibility": "private",
+      "branch": "main",
+      "workflow": "freelance-source-ci.yml",
+      "purpose": "Freelance scanner and source-quality CI, no applications"
+    },
+    {
+      "id": "web",
+      "repository": "Katarina-web",
+      "visibility": "public",
+      "branch": "main",
+      "workflow": "cloudflare-free-audit.yml",
+      "purpose": "Website resource audit only, no deployment"
+    }
+  ]
+}

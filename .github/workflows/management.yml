@@ -1,0 +1,132 @@
+name: Katarina Management - Three Parallel Projects
+
+on:
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: 'Projects to manage'
+        type: choice
+        options: [all, ai, freelance, web]
+        default: all
+        required: true
+      mode:
+        description: 'Audit checks only, or explicitly dispatch approved target workflows'
+        type: choice
+        options: [audit, dispatch]
+        default: audit
+        required: true
+  schedule:
+    # 08:17 WIB. Audit only; no remote dispatch or code mutation.
+    - cron: '17 1 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: katarina-management-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  planner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Plan bounded and approved project work
+        id: plan
+        env:
+          MGMT_SCOPE: ${{ inputs.scope || 'all' }}
+          MGMT_MODE: ${{ inputs.mode || 'audit' }}
+        run: python -m management.cli plan --scope "$MGMT_SCOPE" --mode "$MGMT_MODE"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: katarina-management-plan
+          path: out/plan.json
+          if-no-files-found: error
+          retention-days: 7
+
+  projects:
+    needs: planner
+    if: needs.planner.result == 'success'
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix: ${{ fromJSON(needs.planner.outputs.matrix) }}
+    name: ${{ matrix.project }} project lane
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      MANAGEMENT_REPO_READ_TOKEN: ${{ matrix.project == 'freelance' && secrets.MANAGEMENT_REPO_READ_TOKEN || '' }}
+      MANAGEMENT_DISPATCH_TOKEN: ${{ inputs.mode == 'dispatch' && secrets.MANAGEMENT_DISPATCH_TOKEN || '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          name: katarina-management-plan
+          path: out
+      - name: Audit or explicitly dispatch approved project workflow
+        run: python -m management.cli worker --project "${{ matrix.project }}"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: katarina-management-${{ matrix.project }}
+          path: out/${{ matrix.project }}.json
+          if-no-files-found: warn
+          retention-days: 7
+
+  qa-manager:
+    needs: [planner, projects]
+    if: always() && needs.planner.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: katarina-management-*
+          path: out
+          merge-multiple: true
+      - name: Unit and authorization regression
+        run: python -m unittest discover -s tests -p 'test_*.py' -v
+      - name: QA integrity check and manager project decision
+        run: python -m management.cli finish
+      - name: Publish high-level status and blockers
+        if: always()
+        run: |
+          if test -f out/SUMMARY.md; then
+            cat out/SUMMARY.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'QA/Management BLOCKED: incomplete or invalid project receipts.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: katarina-management-report-${{ github.run_id }}
+          path: |
+            out/plan.json
+            out/ai.json
+            out/freelance.json
+            out/web.json
+            out/qa.json
+            out/manager.json
+            out/SUMMARY.md
+          if-no-files-found: warn
+          retention-days: 7

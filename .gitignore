@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+out/
+.env
+.env.*
+!.env.example
+.venv/
+.github_token

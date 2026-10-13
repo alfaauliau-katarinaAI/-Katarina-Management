@@ -1,0 +1,54 @@
+name: Katarina Management Unit CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'management/**'
+      - 'config/**'
+      - 'tests/**'
+      - '.github/workflows/**'
+  pull_request:
+    paths:
+      - 'management/**'
+      - 'config/**'
+      - 'tests/**'
+      - '.github/workflows/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: katarina-management-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile isolated management modules
+        run: python -m compileall -q management
+      - name: Test scheduler, authorization, QA and manager
+        run: python -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Enforce management secrets never enter repo
+        run: |
+          test ! -f .env
+          test ! -f .github_token
+          python - <<'PY'
+          from pathlib import Path
+          workflow=Path('.github/workflows/management.yml').read_text()
+          assert 'permissions:\n  contents: read' in workflow
+          assert 'max-parallel: 3' in workflow
+          assert 'MANAGEMENT_DISPATCH_TOKEN' in workflow
+          assert 'workflow_dispatch:' in workflow
+          assert "17 1 * * *" in workflow
+          print('PASS_ISOLATED_MANAGEMENT_SECURITY_CONTRACT')
+          PY

@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "management": {
+    "scheduler": "Lock run scope, prevent conflicts, limit job parallelism, no automatic remote retries",
+    "qa": "Verify all project receipts and block missing or tampered evidence",
+    "manager": "Consolidate auditable reports, separate project blockers without hiding failures",
+    "security": "Least-privilege read token for private repo and distinct Actions:write token for explicit dispatch",
+    "resource_operations": "Observe ephemeral GitHub runners; no VPS process kills or RAM cleanup",
+    "release_manager": "Target repository owners alone publish changes; management has no contents write"
+  },
+  "projects": {
+    "ai": {
+      "roles": [
+        "research_ideas",
+        "quant",
+        "logic",
+        "builder",
+        "debugger",
+        "runner_ops",
+        "risk",
+        "qa"
+      ],
+      "executed_by": "Katarina-AI/.github/workflows/katarina-orchestrated-team.yml",
+      "real_ai_models_verified": false,
+      "trading_authorized": false
+    },
+    "freelance": {
+      "roles": [
+        "opportunity_research",
+        "source_quality",
+        "proposal_review",
+        "marketplace_compliance",
+        "qa"
+      ],
+      "executed_by": "Katarina-Freelance/.github/workflows/freelance-source-ci.yml",
+      "can_send_applications": false,
+      "can_accept_paid_contracts": false
+    },
+    "web": {
+      "roles": [
+        "frontend",
+        "content_quality",
+        "deployment_safety",
+        "infrastructure",
+        "qa"
+      ],
+      "executed_by": "Katarina-web/.github/workflows/cloudflare-free-audit.yml",
+      "can_publish": false,
+      "can_change_cloudflare": false
+    }
+  },
+  "note": "Responsibility boundaries, not independent active LLM agents."
+}
