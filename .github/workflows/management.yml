@@ -1,4 +1,4 @@
-name: Katarina Management - Three Parallel Projects
+name: Katarina Management - AI and Web
 
 on:
   workflow_dispatch:
@@ -6,7 +6,7 @@ on:
       scope:
         description: 'Projects to manage'
         type: choice
-        options: [all, ai, freelance, web]
+        options: [all, ai, web]
         default: all
         required: true
       mode:
@@ -57,14 +57,14 @@ jobs:
     if: needs.planner.result == 'success'
     strategy:
       fail-fast: false
-      max-parallel: 3
+      max-parallel: 2
       matrix: ${{ fromJSON(needs.planner.outputs.matrix) }}
     name: ${{ matrix.project }} project lane
     runs-on: ubuntu-latest
     timeout-minutes: 8
     env:
       GITHUB_TOKEN: ${{ github.token }}
-      MANAGEMENT_REPO_READ_TOKEN: ${{ matrix.project == 'freelance' && secrets.MANAGEMENT_REPO_READ_TOKEN || '' }}
+      MANAGEMENT_REPO_READ_TOKEN: ''  # Freelance intentionally paused
       MANAGEMENT_DISPATCH_TOKEN: ${{ inputs.mode == 'dispatch' && secrets.MANAGEMENT_DISPATCH_TOKEN || '' }}
     steps:
       - uses: actions/checkout@v4

@@ -46,7 +46,7 @@ jobs:
           from pathlib import Path
           workflow=Path('.github/workflows/management.yml').read_text()
           assert 'permissions:\n  contents: read' in workflow
-          assert 'max-parallel: 3' in workflow
+          assert 'max-parallel: 2' in workflow
           assert 'MANAGEMENT_DISPATCH_TOKEN' in workflow
           assert 'workflow_dispatch:' in workflow
           assert "17 1 * * *" in workflow

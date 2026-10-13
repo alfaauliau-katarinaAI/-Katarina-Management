@@ -12,7 +12,7 @@ SCOPES = (*PROJECTS, "all")
 MODES = ("audit", "dispatch")
 MANIFEST_VERSION = 1
 OWNER = "alfaauliau-katarinaAI"
-MAX_PARALLEL = 3
+MAX_PARALLEL = 2
 RECEIPT_VERSION = "KATARINA_MANAGEMENT_1"
 REPO_NAME = re.compile(r"^[A-Za-z0-9_.-]{1,80}$")
 WORKFLOW = re.compile(r"^[A-Za-z0-9_.-]+\.ya?ml$")
@@ -72,6 +72,8 @@ def load_manifest(path: Path) -> dict:
             raise ValueError("workflow_allowlist_violation")
         if item.get("branch") != "main":
             raise ValueError("only_main_branch_allowed")
+        if type(item.get("enabled")) is not bool:
+            raise ValueError("explicit_project_enable_flag_required")
         if (not REPO_NAME.fullmatch(item["repository"]) or
                 not WORKFLOW.fullmatch(item["workflow"])):
             raise ValueError("invalid_repo_or_workflow")
@@ -91,7 +93,12 @@ def make_plan(cfg: dict, scope: str, mode: str, commit: str,
     moment = now or datetime.now(timezone.utc)
     if moment.tzinfo is None:
         raise ValueError("utc_aware_time_required")
-    active = [p for p in cfg["projects"] if scope == "all" or p["id"] == scope]
+    active = [p for p in cfg["projects"]
+              if p["enabled"] and (scope == "all" or p["id"] == scope)]
+    if not active:
+        raise ValueError("requested_project_paused")
+    if len(active) > MAX_PARALLEL:
+        raise ValueError("too_many_active_projects")
     return signed({
         "version": RECEIPT_VERSION,
         "kind": "plan",

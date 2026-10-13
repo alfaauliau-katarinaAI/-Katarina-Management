@@ -1,12 +1,12 @@
 # Katarina Management — cross-project execution architecture
 
-Three sibling repositories are operated through bounded GitHub-hosted Actions,
+Three sibling repositories are supported through bounded GitHub-hosted Actions,
 not by copying their code or granting a shared agent universal credentials.
 
 ## Dependency graph
 
-Planner (allowlisted fixed scope) → three parallel workers (AI, Freelance,
-Web; max-parallel=3, fail-fast=false) → independent QA (SHA-256 receipts tied
+Planner (allowlisted fixed scope) → two active parallel workers (AI,
+Web; max-parallel=2, fail-fast=false; Freelance paused) → independent QA (SHA-256 receipts tied
 to the exact Git commit and run ID) → manager summary.
 
 Every lane can report HEALTH_OK, CI_FAILED, CI_NOT_COMPLETED, DISPATCH_ACCEPTED,
@@ -25,8 +25,7 @@ No arbitrary repository, workflow filename, branch or URL is supported.
 ## Separation of permissions
 
 The GitHub Actions job token is read-only in THIS management repository.
-A fine-grained read-only token is required to inspect the private Freelance
-repository. A **separate** fine-grained Actions: Write token limited to
+The private Freelance repository is PAUSED and not inspected; no private read token is needed in this phase. A **separate** fine-grained Actions: Write token limited to
 the three target repositories is required to trigger dispatches. It is
 consumed only on a manual workflow_dispatch run with mode=dispatch.
 
@@ -35,8 +34,7 @@ remote shell, trading execution, automatic job applications or paid contracts.
 The scheduler audits daily at 08:17 WIB; it does not dispatch on a schedule.
 
 Secrets belong in GitHub Actions settings, never in configuration or artifacts.
-The repository is currently public: make it private if management internals
-should not be visible publicly.
+The management repository can stay public while it handles only non-sensitive AI/Web metadata. Do not commit access tokens or confidential data. When resuming Freelance, reassess repository visibility and minimal permissions.
 
 ## Reliability
 

@@ -62,13 +62,15 @@ class ManagementTests(unittest.TestCase):
     def test_manifest_exact_repo_allowlist(self):
         self.assertEqual([x['id'] for x in self.cfg['projects']],
                          ['ai', 'freelance', 'web'])
-        self.assertEqual(self.cfg['max_parallel'], 3)
+        self.assertEqual(self.cfg['max_parallel'], 2)
+        self.assertEqual([x['id'] for x in self.cfg['projects'] if x['enabled']],
+                         ['ai', 'web'])
 
-    def test_dynamic_matrix_three_simultaneous_lanes(self):
+    def test_dynamic_matrix_two_simultaneous_lanes(self):
         plan = self.plan()
         self.assertEqual(plan_matrix(plan), {'include': [
-            {'project': 'ai'}, {'project': 'freelance'}, {'project': 'web'}]})
-        self.assertEqual(plan['max_parallel'], 3)
+            {'project': 'ai'}, {'project': 'web'}]})
+        self.assertEqual(plan['max_parallel'], 2)
         self.assertEqual(plan['retry_limit'], 0)
         self.assertFalse(plan['applications_allowed'])
         self.assertFalse(plan['web_deployment_allowed'])
@@ -76,7 +78,7 @@ class ManagementTests(unittest.TestCase):
         self.assertFalse(plan['trading_allowed'])
 
     def test_project_scopes_do_not_run_other_lanes(self):
-        for project in ('ai', 'freelance', 'web'):
+        for project in ('ai', 'web'):
             plan = self.plan(scope=project)
             self.assertEqual(plan['project_lanes'], [project])
             self.assertEqual(len(plan_matrix(plan)['include']), 1)
@@ -91,15 +93,12 @@ class ManagementTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 load_manifest(path)
 
-    def test_missing_private_token_blocks_without_api_call(self):
-        def forbidden(*a, **kw):
-            raise AssertionError('Private repo was contacted without token')
-        result = process_lane(self.plan(), 'freelance',
-                              github_token='job-token', transport=forbidden)
-        self.assertEqual(result['status'], 'BLOCKED_AUTH')
-        self.assertEqual(result['message'], 'PRIVATE_READ_TOKEN_NOT_CONFIGURED')
+    def test_paused_freelance_cannot_run_or_be_in_default_plan(self):
+        with self.assertRaises(ValueError):
+            self.plan(scope='freelance')
+        self.assertNotIn('freelance', self.plan()['project_lanes'])
 
-    def test_all_three_github_ci_status_reads_work(self):
+    def test_two_active_github_ci_status_reads_work(self):
         p = self.plan()
         reports = {}
         for lane in p['project_lanes']:
@@ -112,7 +111,7 @@ class ManagementTests(unittest.TestCase):
         check = qa(p, reports)
         result = manager(p, check)
         self.assertEqual(result['overall_status'], 'ALL_TRACKS_AUDITED')
-        self.assertEqual(set(result['tracks']), {'ai', 'freelance', 'web'})
+        self.assertEqual(set(result['tracks']), {'ai', 'web'})
         self.assertTrue(result['no_auto_application'])
         self.assertTrue(result['no_auto_deployment'])
         self.assertTrue(result['no_live_trading'])
@@ -159,21 +158,21 @@ class ManagementTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             qa(p, reports)
 
-    def test_partial_private_auth_reports_blocked_not_success(self):
+    def test_private_freelance_stays_excluded_without_secret(self):
         p = self.plan()
         reports = {lane: process_lane(p, lane, github_token='gh-example',
                    transport=fake_transport) for lane in p['project_lanes']}
         summary = manager(p, qa(p, reports))
-        self.assertEqual(summary['overall_status'], 'PARTIALLY_BLOCKED')
-        self.assertEqual(summary['blocked_projects'], ['freelance'])
+        self.assertEqual(summary['overall_status'], 'ALL_TRACKS_AUDITED')
+        self.assertNotIn('freelance', summary['tracks'])
         self.assertEqual(summary['tracks']['ai']['status'], 'HEALTH_OK')
         self.assertEqual(summary['tracks']['web']['status'], 'HEALTH_OK')
 
     def test_http_auth_error_does_not_leak_provider_body(self):
         def forbidden(req, timeout):
             raise HTTPError(req.full_url, 403, 'PRIVATE_ANSWER', {}, None)
-        report = process_lane(self.plan(), 'freelance',
-                              private_read_token='do-not-display-this-token',
+        report = process_lane(self.plan(), 'ai',
+                              github_token='do-not-display-this-token',
                               transport=forbidden)
         self.assertEqual(report['status'], 'BLOCKED_AUTH')
         self.assertNotIn('do-not-display-this-token', json.dumps(report))

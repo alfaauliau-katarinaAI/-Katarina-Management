@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "owner": "alfaauliau-katarinaAI",
-  "max_parallel": 3,
+  "max_parallel": 2,
   "projects": [
     {
       "id": "ai",
@@ -9,7 +9,8 @@
       "visibility": "public",
       "branch": "main",
       "workflow": "katarina-orchestrated-team.yml",
-      "purpose": "Katarina AI multi-specialist research and QA"
+      "purpose": "Katarina AI multi-specialist research and QA",
+      "enabled": true
     },
     {
       "id": "freelance",
@@ -17,7 +18,8 @@
       "visibility": "private",
       "branch": "main",
       "workflow": "freelance-source-ci.yml",
-      "purpose": "Freelance scanner and source-quality CI, no applications"
+      "purpose": "Freelance scanner and source-quality CI, no applications",
+      "enabled": false
     },
     {
       "id": "web",
@@ -25,7 +27,8 @@
       "visibility": "public",
       "branch": "main",
       "workflow": "cloudflare-free-audit.yml",
-      "purpose": "Website resource audit only, no deployment"
+      "purpose": "Website resource audit only, no deployment",
+      "enabled": true
     }
   ]
 }

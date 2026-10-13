@@ -1,29 +1,29 @@
-# Katarina Management — Cross-Repository Scheduler
+# Katarina Management — AI + Web (Freelance Paused)
 
-Central management for three independent GitHub projects:
+Central management for three independent GitHub projects, with **AI and Web active** and **Freelance paused**:
 
 | Lane | Repository | Allowed workflow | Boundary |
 | --- | --- | --- | --- |
-| AI | alfaauliau-katarinaAI/Katarina-AI | katarina-orchestrated-team.yml | Research, QA; no live trading |
-| Freelance | alfaauliau-katarinaAI/Katarina-Freelance | freelance-source-ci.yml | Source QA; no job applications |
-| Web | alfaauliau-katarinaAI/Katarina-web | cloudflare-free-audit.yml | Read-only audit; no deployment |
+| AI | alfaauliau-katarinaAI/Katarina-AI | katarina-orchestrated-team.yml | ACTIVE: research and QA; no live trading |
+| Freelance | alfaauliau-katarinaAI/Katarina-Freelance | freelance-source-ci.yml | PAUSED: excluded from scheduler and all-lanes mode |
+| Web | alfaauliau-katarinaAI/Katarina-web | cloudflare-free-audit.yml | ACTIVE: read-only audit; no deployment |
 
 ## Architecture
-Planner → up to 3 parallel project workers → independent QA receipt checks → Manager. Project failures are isolated.
+Planner → up to 2 parallel active project workers → independent QA receipt checks → Manager. Project failures are isolated.
 
 Daily scheduled audit at 08:17 WIB; manual `workflow_dispatch` selects one or all lanes. Dispatching a target repository workflow requires a separate fine-grained **Actions: Write** token and manual approval; acceptance does not mean the job passed.
 
 ## Important privacy requirement
-**This repository was created as PUBLIC by its owner.** Switch to PRIVATE under Settings → General → Danger Zone before treating management metadata as confidential. No secrets are stored here, and credentials must never be checked in.
+**This repository may stay PUBLIC for AI + Web.** Never commit API tokens, secrets, client/marketplace credentials, commercial proposals, private data, or private freelance repo content. GitHub Actions secrets are masked but workflow artifacts and logs must not reveal sensitive inputs.
 
 ## GitHub Actions secrets (optional)
-- `MANAGEMENT_REPO_READ_TOKEN`: fine-grained **Actions: Read** for the private Freelance repository. Without it, that lane reports BLOCKED_AUTH.
+- Freelance is currently paused; no private-repository token is required for AI + Web audits.
 - `MANAGEMENT_DISPATCH_TOKEN`: fine-grained **Actions: Write** for the three allowlisted target repositories. Required only for manually selected dispatch mode.
 
 Neither token is required to run the local 14-test suite. No arbitrary code generation, auto-commit, bids, browser login, financial transactions, VPS cleanup, trade execution, or cross-repository source modifications occur.
 
 ## Run
-GitHub Actions → **Katarina Management - Three Parallel Projects** → **Run workflow** → `scope=all`, `mode=audit`.
+GitHub Actions → **Katarina Management - AI and Web** → **Run workflow** → `scope=all` (AI + Web), `mode=audit`.
 
 Local tests: `python -m unittest discover -s tests -v`.
 
